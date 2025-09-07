@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Blog | Suhash</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- NAVBAR -->
+  <header class="topbar">
+  <div class="brand">Suhash</div>
+  <nav class="topnav" aria-label="Main navigation">
+    <h2 class="page-title">Blog Posts</h1>
+    <a href="index.html">Home</a>
+    
+  </nav>
+</header>
+
+
+  <!-- MAIN -->
+  <main class="blog-container">
+    
+    <p class="muted">Fetching posts from my Google Blogger</p>
+
+    <div class="blog-controls">
+      <input class="blog-search" placeholder="🔍 Search headlines..." />
+    </div>
+
+    <section class="blog-list"></section>
+
+    <div class="pagination">
+      <button id="loadMore" class="btn">Load More</button>
+    </div>
+  </main>
+
+  <script>
+    const BLOG_BASE = "https://thetechnestblog.blogspot.com"; // 🔴 Replace with your Blogger URL
+    const FEED_URL = `${BLOG_BASE}/feeds/posts/default?alt=json&orderby=published&max-results=50`;
+
+    const blogList = document.querySelector(".blog-list");
+    const searchInput = document.querySelector(".blog-search");
+    const loadMoreBtn = document.getElementById("loadMore");
+
+    let allPosts = [];
+    let currentIndex = 0;
+    const PAGE_SIZE = 6;
+
+    function formatDate(str) {
+      if (!str) return "";
+      return new Date(str).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+
+    function stripHtml(html) {
+      const d = document.createElement("div");
+      d.innerHTML = html || "";
+      return (d.textContent || d.innerText || "").trim();
+    }
+
+    function renderPosts(reset = false) {
+      if (reset) blogList.innerHTML = "";
+      const slice = allPosts.slice(currentIndex, currentIndex + PAGE_SIZE);
+
+      slice.forEach(entry => {
+        const title = entry.title?.$t || "Untitled";
+        const date = formatDate(entry.published?.$t);
+        const content = entry.summary?.$t || entry.content?.$t || "";
+        const excerpt = stripHtml(content).slice(0, 150) + "...";
+
+        let link = "#";
+        if (entry.link) {
+          const alt = entry.link.find(l => l.rel === "alternate");
+          link = alt?.href || link;
+        }
+
+        const card = document.createElement("article");
+        card.className = "post-card";
+        card.innerHTML = `
+          <h3 class="post-title"><a href="${link}" target="_blank">${title}</a></h3>
+          <div class="post-meta">${date}</div>
+          <p class="post-excerpt">${excerpt}</p>
+          <a class="post-link" href="${link}" target="_blank">Read More →</a>
+        `;
+        blogList.appendChild(card);
+      });
+
+      currentIndex += PAGE_SIZE;
+      if (currentIndex >= allPosts.length) loadMoreBtn.style.display = "none";
+    }
+
+    async function loadFeed() {
+      try {
+        const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(FEED_URL));
+        const data = await res.json();
+        allPosts = data.feed?.entry || [];
+        renderPosts(true);
+      } catch (err) {
+        blogList.innerHTML = "<p style='color:red;'>⚠️ Could not load posts. Check Blogger URL.</p>";
+      }
+    }
+
+    searchInput.addEventListener("input", e => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll(".post-card").forEach(card => {
+        card.style.display = card.innerText.toLowerCase().includes(q) ? "" : "none";
+      });
+    });
+
+    loadMoreBtn.addEventListener("click", () => renderPosts());
+    document.addEventListener("DOMContentLoaded", loadFeed);
+  </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Post | Suhash</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="sidebar" style="position:static; width:100%; height:auto; display:flex; justify-content:space-between; padding:14px 20px;">
+    <a href="blog.html" style="color:var(--accent-color); font-weight:600;">← Back to Blog</a>
+    <button id="theme-toggle">🌙</button>
+  </nav>
+
+  <main style="max-width:900px; margin:40px auto; padding:20px;">
+    <article id="postContent">
+      <h1 id="postTitle" style="margin-bottom:10px;"></h1>
+      <div id="postDate" class="post-meta" style="margin-bottom:20px;"></div>
+      <div id="postBody"></div>
+    </article>
+  </main>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const postUrl = urlParams.get("url");
+
+    async function loadPost() {
+      if (!postUrl) {
+        document.getElementById("postContent").innerHTML = "<p>No post selected.</p>";
+        return;
+      }
+      const proxy = "https://api.allorigins.win/raw?url=" + encodeURIComponent(postUrl + "?alt=json");
+      const res = await fetch(proxy);
+      const text = await res.text();
+
+      // Some Blogger setups don’t provide JSON per-post; fallback to iframe
+      if (text.startsWith("{")) {
+        const data = JSON.parse(text);
+        const entry = data.entry;
+        document.getElementById("postTitle").textContent = entry.title?.$t || "Untitled";
+        document.getElementById("postDate").textContent = new Date(entry.published.$t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        document.getElementById("postBody").innerHTML = entry.content?.$t || "";
+      } else {
+        document.getElementById("postBody").innerHTML = `<iframe src="${postUrl}" style="width:100%; height:80vh; border:none;"></iframe>`;
+      }
+    }
+
+    loadPost();
+  </script>
+</body>
+</html>
